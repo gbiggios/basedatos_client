@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Miembro</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Editar Miembro</h1>
+        
+        <!-- Formulario para editar miembro -->
+        <form id="editMemberForm">
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="rut">RUT</label>
+                    <input type="text" class="form-control" id="rut" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="nombre">Nombre</label>
+                    <input type="text" class="form-control" id="nombre" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="apellidoPaterno">Apellido Paterno</label>
+                    <input type="text" class="form-control" id="apellidoPaterno" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="apellidoMaterno">Apellido Materno</label>
+                    <input type="text" class="form-control" id="apellidoMaterno" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="instrumento">Instrumento</label>
+                    <input type="text" class="form-control" id="instrumento" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="correo">Correo</label>
+                    <input type="email" class="form-control" id="correo" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="contacto">Contacto</label>
+                    <input type="text" class="form-control" id="contacto" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="tipoUsuario">Tipo de Usuario</label>
+                    <select class="form-control" id="tipoUsuario" required>
+                        <option value="presidente">Presidente</option>
+                        <option value="directiva">Directiva</option>
+                        <option value="comite">Comité</option>
+                        <option value="miembro">Miembro</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="comite">Comité</label>
+                    <input type="text" class="form-control" id="comite" required>
+                </div>
+                <div class="form-group col-md-6">
+                    <label for="activo">Activo</label>
+                    <select class="form-control" id="activo" required>
+                        <option value="true">Sí</option>
+                        <option value="false">No</option>
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Actualizar Miembro</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const memberId = urlParams.get('memberID');
+
+            // Función para obtener los datos del miembro y llenar el formulario
+            function getMember() {
+                axios.get(`http://localhost:5000/members/${memberId}`)
+                    .then(response => {
+                        const member = response.data;
+                        document.querySelector('#rut').value = member.rut;
+                        document.querySelector('#nombre').value = member.nombre;
+                        document.querySelector('#apellidoPaterno').value = member.apellidoPaterno;
+                        document.querySelector('#apellidoMaterno').value = member.apellidoMaterno;
+                        document.querySelector('#instrumento').value = member.instrumento;
+                        document.querySelector('#correo').value = member.correo;
+                        document.querySelector('#contacto').value = member.contacto;
+                        document.querySelector('#tipoUsuario').value = member.tipoUsuario;
+                        document.querySelector('#comite').value = member.comite;
+                        document.querySelector('#activo').value = member.activo ? 'true' : 'false';
+                    })
+                    .catch(error => {
+                        console.error('Error al obtener miembro:', error);
+                    });
+            }
+
+            // Función para actualizar el miembro
+            document.querySelector('#editMemberForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const updatedMember = {
+                    rut: document.querySelector('#rut').value,
+                    nombre: document.querySelector('#nombre').value,
+                    apellidoPaterno: document.querySelector('#apellidoPaterno').value,
+                    apellidoMaterno: document.querySelector('#apellidoMaterno').value,
+                    instrumento: document.querySelector('#instrumento').value,
+                    correo: document.querySelector('#correo').value,
+                    contacto: document.querySelector('#contacto').value,
+                    tipoUsuario: document.querySelector('#tipoUsuario').value,
+                    comite: document.querySelector('#comite').value,
+                    activo: document.querySelector('#activo').value === 'true'
+                };
+                axios.put(`http://localhost:5000/members/update?memberID=${memberId}`, updatedMember)
+                    .then(response => {
+                        console.log('Miembro actualizado:', response.data);
+                        window.location.href = '/members.html'; // Redirigir a la página de miembros
+                    })
+                    .catch(error => {
+                        console.error('Error al actualizar miembro:', error);
+                    });
+            });
+
+            // Obtener y llenar los datos del miembro al cargar la página
+            getMember();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repertorio de Orquesta</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">Repertorio de Orquesta</h1>
+
+        <button class="btn btn-primary mt-3" data-toggle="modal" data-target="#createRepertorioModal">Agregar Repertorio</button>
+
+        <div class="mt-3">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Compositor</th>
+                        <th>Existencia de Partitura</th>
+                        <th>Instrumentos</th>
+                        <th>Tipo</th>
+                        <th>Asignaciones</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="repertoriosTableBody">
+                    <!-- Repertorios serán insertados aquí -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal para Crear Repertorio -->
+    <div class="modal fade" id="createRepertorioModal" tabindex="-1" aria-labelledby="createRepertorioModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createRepertorioModalLabel">Agregar Repertorio</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="createRepertorioForm">
+                        <div class="form-group">
+                            <label for="nombre">Nombre</label>
+                            <input type="text" class="form-control" id="nombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="compositor">Compositor</label>
+                            <input type="text" class="form-control" id="compositor" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="existenciaPartitura">Existencia de Partitura</label>
+                            <select class="form-control" id="existenciaPartitura" required>
+                                <option value="true">Sí</option>
+                                <option value="false">No</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="tipo">Tipo</label>
+                            <select class="form-control" id="tipo" required onchange="handleTipoChange()">
+                                <option value="tutti">Tutti</option>
+                                <option value="vientos">Vientos</option>
+                                <option value="cuerda">Cuerda</option>
+                                <option value="camara">Cámara</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="instrumentos">Instrumentos</label>
+                            <div id="instrumentosContainer">
+                                <!-- Instrumentos serán añadidos aquí -->
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Asignar Instrumentos -->
+    <div class="modal fade" id="assignInstrumentoModal" tabindex="-1" aria-labelledby="assignInstrumentoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignInstrumentoModalLabel">Asignar Instrumentos</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="assignInstrumentoForm">
+                        <div id="assignInstrumentosContainer">
+                            <!-- Asignaciones serán añadidas aquí -->
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar Asignaciones</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        const apiUrl = 'http://localhost:5000/repertorios';
+        const miembrosApiUrl = 'http://localhost:5000/members';
+        const instrumentosTutti = ['Violin', 'Viola', 'Violoncello', 'Contrabajo', 'Flauta', 'Oboe', 'Clarinete', 'Fagot', 'Saxofon', 'Trompeta', 'Corno', 'Trombon', 'Tuba', 'Piano', 'Percusiones'];
+        const instrumentosCuerda = ['Violin', 'Viola', 'Violoncello', 'Contrabajo'];
+        const instrumentosVientos = ['Flauta', 'Oboe', 'Clarinete', 'Fagot', 'Saxofon', 'Trompeta', 'Corno', 'Trombon', 'Tuba'];
+        const instrumentosCamara = [];
+        let members = []; // Lista de miembros (deberías obtenerla de tu API)
+        let currentRepertorioId = null;
+
+        $(document).ready(function() {
+            loadRepertorios();
+            loadMembers();
+
+            $('#createRepertorioForm').submit(function(event) {
+                event.preventDefault();
+                createRepertorio();
+            });
+
+            $('#assignInstrumentoForm').submit(function(event) {
+                event.preventDefault();
+                saveAsignaciones();
+            });
+
+            handleTipoChange(); // Inicializar los instrumentos según el tipo seleccionado por defecto
+        });
+
+        function loadMembers() {
+            fetch(miembrosApiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    members = data.members;
+                })
+                .catch(error => console.error('Error al cargar los miembros:', error));
+        }
+
+        function handleTipoChange() {
+            const tipo = $('#tipo').val();
+            let instrumentos = [];
+            switch (tipo) {
+                case 'tutti':
+                    instrumentos = instrumentosTutti;
+                    break;
+                case 'cuerda':
+                    instrumentos = instrumentosCuerda;
+                    break;
+                case 'vientos':
+                    instrumentos = instrumentosVientos;
+                    break;
+                case 'camara':
+                    instrumentos = instrumentosCamara;
+                    break;
+            }
+            renderInstrumentos(instrumentos);
+        }
+
+        function renderInstrumentos(instrumentos) {
+            const container = $('#instrumentosContainer');
+            container.empty();
+            instrumentos.forEach(instrumento => addInstrumentoField(instrumento));
+        }
+
+        function addInstrumentoField(instrumento) {
+            const container = $('#instrumentosContainer');
+            const fieldHtml = `
+                <div class="form-group d-flex">
+                    <label class="mr-2">${instrumento}</label>
+                    <input type="number" class="form-control instrumento-number" data-instrumento="${instrumento}" min="0" value="1" required>
+                </div>
+            `;
+            container.append(fieldHtml);
+        }
+
+        function loadRepertorios() {
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = $('#repertoriosTableBody');
+                    tbody.empty();
+                    data.repertorios.forEach(repertorio => {
+                        const tr = `
+                            <tr>
+                                <td>${repertorio.nombre}</td>
+                                <td>${repertorio.compositor}</td>
+                                <td>${repertorio.existenciaPartitura ? 'Sí' : 'No'}</td>
+                                <td>${repertorio.instrumentos.join(', ')}</td>
+                                <td>${repertorio.tipo}</td>
+                                <td>${repertorio.asignaciones.map(a => `${a.instrumento}: ${a.miembro}`).join('<br>')}</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm" onclick="editRepertorio('${repertorio._id}')">Editar</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteRepertorio('${repertorio._id}')">Eliminar</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="showAsignarInstrumentos('${repertorio._id}', '${repertorio.instrumentos.join(', ')}')">Asignar Voces</button>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.append(tr);
+                    });
+                })
+                .catch(error => console.error('Error al cargar los repertorios:', error));
+        }
+
+        function createRepertorio() {
+            const nombre = $('#nombre').val();
+            const compositor = $('#compositor').val();
+            const existenciaPartitura = $('#existenciaPartitura').val() === 'true';
+            const instrumentos = [];
+            $('.instrumento-number').each(function() {
+                const instrumento = $(this).data('instrumento');
+                const number = $(this).val();
+                for (let i = 1; i <= number; i++) {
+                    instrumentos.push(`${instrumento} ${i}`);
+                }
+            });
+            const tipo = $('#tipo').val();
+            const asignaciones = []; // Inicialmente vacío
+
+            const repertorio = { nombre, compositor, existenciaPartitura, instrumentos, tipo, asignaciones };
+
+            fetch(apiUrl + '/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(repertorio)
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Error al crear el repertorio');
+                }
+            })
+            .then(data => {
+                $('#createRepertorioModal').modal('hide');
+                loadRepertorios();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error al crear el repertorio. Por favor, inténtelo de nuevo.');
+            });
+        }
+
+        function deleteRepertorio(id) {
+            fetch(apiUrl + '/delete/' + id, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadRepertorios();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function editRepertorio(id) {
+            alert('Función de edición no implementada.');
+        }
+
+        function showAsignarInstrumentos(id, instrumentos) {
+            currentRepertorioId = id;
+            const container = $('#assignInstrumentosContainer');
+            container.empty();
+            const instrumentosList = instrumentos.split(', ');
+
+            instrumentosList.forEach(instrumento => {
+                const miembrosFiltrados = members.filter(miembro => miembro.instrumento === instrumento);
+                const fieldHtml = `
+                    <div class="form-group d-flex">
+                        <label class="mr-2">${instrumento}</label>
+                        <select class="form-control miembro-assign-select">
+                            ${miembrosFiltrados.map(miembro => `<option value="${miembro.nombre}">${miembro.nombre}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+                container.append(fieldHtml);
+            });
+
+            $('#assignInstrumentoModal').modal('show');
+        }
+
+        function saveAsignaciones() {
+            const asignaciones = [];
+            $('#assignInstrumentosContainer .form-group').each(function() {
+                const instrumento = $(this).find('label').text();
+                const miembro = $(this).find('.miembro-assign-select').val();
+                asignaciones.push({ instrumento, miembro });
+            });
+
+            fetch(apiUrl + '/update/' + currentRepertorioId, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ asignaciones })
+            })
+            .then(response => response.json())
+            .then(data => {
+                $('#assignInstrumentoModal').modal('hide');
+                loadRepertorios();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>

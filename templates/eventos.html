@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Eventos</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Gestión de Eventos</h1>
+
+        <!-- Formulario para crear un evento -->
+        <div class="card mt-4">
+            <div class="card-header">Crear Evento</div>
+            <div class="card-body">
+                <form id="createEventoForm">
+                    <div class="form-group">
+                        <label for="fecha">Fecha</label>
+                        <input type="date" class="form-control" id="fecha" name="fecha" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="descripcion">Descripción</label>
+                        <input type="text" class="form-control" id="descripcion" name="descripcion" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lugar">Lugar</label>
+                        <input type="text" class="form-control" id="lugar" name="lugar" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tipo">Tipo de Evento</label>
+                        <select class="form-control" id="tipo" name="tipo" required>
+                            <option value="concierto">Concierto</option>
+                            <option value="cumpleaños">Cumpleaños</option>
+                            <option value="charla">Charla</option>
+                            <option value="master class">Master Class</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Crear Evento</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tabla para mostrar los eventos -->
+        <div class="card mt-4">
+            <div class="card-header">Lista de Eventos</div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Descripción</th>
+                            <th>Lugar</th>
+                            <th>Tipo</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventosTableBody">
+                        <!-- Aquí se insertarán las filas de los eventos -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'http://localhost:5000/eventos';
+
+        document.getElementById('createEventoForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const data = {
+                fecha: document.getElementById('fecha').value,
+                descripcion: document.getElementById('descripcion').value,
+                lugar: document.getElementById('lugar').value,
+                tipo: document.getElementById('tipo').value,
+            };
+            try {
+                const response = await fetch(`${apiUrl}/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                console.log('Evento creado:', result);
+                loadEventos();
+            } catch (error) {
+                console.error('Error al crear evento:', error);
+            }
+        });
+
+        async function loadEventos() {
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                const eventos = data.eventos;
+                const eventosTableBody = document.getElementById('eventosTableBody');
+                eventosTableBody.innerHTML = '';
+                eventos.forEach(evento => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${evento._id}</td>
+                        <td>${new Date(evento.fecha).toLocaleDateString()}</td>
+                        <td>${evento.descripcion}</td>
+                        <td>${evento.lugar}</td>
+                        <td>${evento.tipo}</td>
+                        <td>
+                            <button class="btn btn-info btn-sm" onclick="redirectToEditPage('${evento._id}')">Editar</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteEvento('${evento._id}')">Eliminar</button>
+                        </td>
+                    `;
+                    eventosTableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error al cargar eventos:', error);
+            }
+        }
+
+        function redirectToEditPage(id) {
+            window.location.href = `editEventos.html?eventoID=${id}`;
+        }
+
+        async function deleteEvento(eventoID) {
+            if (confirm('¿Está seguro que desea eliminar este evento?')) {
+                try {
+                    const response = await fetch(`${apiUrl}/delete?eventoID=${eventoID}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const result = await response.json();
+                    console.log('Evento eliminado:', result);
+                    loadEventos();
+                } catch (error) {
+                    console.error('Error al eliminar evento:', error);
+                }
+            }
+        }
+
+        // Cargar eventos al cargar la página
+        document.addEventListener('DOMContentLoaded', loadEventos);
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario de Eventos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="calendar">
+        <div class="calendar-header">
+            <button id="prevMonth">Anterior</button>
+            <h2 id="monthYear"></h2>
+            <button id="nextMonth">Siguiente</button>
+        </div>
+        <div class="calendar-grid">
+            <div class="day-header">Dom</div>
+            <div class="day-header">Lun</div>
+            <div class="day-header">Mar</div>
+            <div class="day-header">Mié</div>
+            <div class="day-header">Jue</div>
+            <div class="day-header">Vie</div>
+            <div class="day-header">Sáb</div>
+            <div id="calendarDays" class="calendar-days"></div>
+        </div>
+    </div>
+
+    <div id="eventPopup" class="event-popup">
+        <div class="event-popup-content">
+            <span class="close">&times;</span>
+            <h2 id="popupTitle"></h2>
+            <p id="popupDetails"></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

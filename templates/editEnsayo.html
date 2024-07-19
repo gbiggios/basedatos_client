@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Ensayo</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .asistencia-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .asistencia-row label {
+            flex: 1;
+        }
+        .asistencia-row input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        .asistencia-row .justificacion {
+            flex: 2;
+            margin-left: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Editar Ensayo</h1>
+        
+        <!-- Formulario para editar ensayo -->
+        <form id="editEnsayoForm">
+            <div class="form-group">
+                <label for="fecha">Fecha</label>
+                <input type="date" class="form-control" id="fecha" required>
+            </div>
+            <div class="form-group">
+                <label for="objetivo">Objetivo</label>
+                <input type="text" class="form-control" id="objetivo" required>
+            </div>
+            <div class="form-group">
+                <label>Asistencia</label>
+                <div id="asistencia">
+                    <!-- Aquí se cargarán los miembros -->
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Actualizar Ensayo</button>
+        </form>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const baseURL = 'http://localhost:5000';
+            const urlParams = new URLSearchParams(window.location.search);
+            const ensayoId = urlParams.get('ensayoID');
+
+            // Función para obtener los datos del ensayo y llenar el formulario
+            function getEnsayo() {
+                axios.get(`${baseURL}/ensayos/${ensayoId}`)
+                    .then(response => {
+                        const ensayo = response.data;
+                        document.querySelector('#fecha').value = new Date(ensayo.fecha).toISOString().substring(0, 10);
+                        document.querySelector('#objetivo').value = ensayo.objetivo;
+                        const asistenciaDiv = document.querySelector('#asistencia');
+                        asistenciaDiv.innerHTML = '';
+                        axios.get(`${baseURL}/members`)
+                            .then(memberResponse => {
+                                const miembros = memberResponse.data.filter(member => member.activo);
+                                miembros.forEach(miembro => {
+                                    const asistencia = ensayo.asistencia.find(a => a.miembroID === miembro._id);
+                                    const presente = asistencia ? asistencia.presente : false;
+                                    const justificacion = asistencia ? asistencia.justificacion : '';
+                                    const miembroDiv = document.createElement('div');
+                                    miembroDiv.classList.add('asistencia-row');
+                                    miembroDiv.innerHTML = `
+                                        <label>
+                                            ${miembro.nombre} ${miembro.apellidoPaterno} ${miembro.apellidoMaterno}
+                                        </label>
+                                        <input type="checkbox" class="present-checkbox" data-id="${miembro._id}" ${presente ? 'checked' : ''}>
+                                        <input type="text" class="form-control justificacion" data-id="${miembro._id}" placeholder="Justificación" value="${justificacion}" style="${presente ? 'display:none;' : 'display:block;'}">
+                                    `;
+                                    asistenciaDiv.appendChild(miembroDiv);
+                                });
+
+                                // Añadir event listeners a los checkboxes
+                                document.querySelectorAll('.present-checkbox').forEach(checkbox => {
+                                    checkbox.addEventListener('change', function() {
+                                        const justificacionInput = document.querySelector(`.justificacion[data-id="${this.getAttribute('data-id')}"]`);
+                                        if (this.checked) {
+                                            justificacionInput.style.display = 'none';
+                                        } else {
+                                            justificacionInput.style.display = 'block';
+                                        }
+                                    });
+                                });
+                            })
+                            .catch(error => {
+                                console.error('Error al obtener miembros:', error);
+                            });
+                    })
+                    .catch(error => {
+                        console.error('Error al obtener ensayo:', error);
+                    });
+            }
+
+            // Función para actualizar el ensayo
+            document.querySelector('#editEnsayoForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const asistencia = [];
+                document.querySelectorAll('.present-checkbox').forEach(checkbox => {
+                    const miembroID = checkbox.getAttribute('data-id');
+                    const presente = checkbox.checked;
+                    const justificacion = presente ? '' : document.querySelector(`.justificacion[data-id="${miembroID}"]`).value;
+                    asistencia.push({ miembroID, presente, justificacion });
+                });
+
+                const updatedEnsayo = {
+                    fecha: document.querySelector('#fecha').value,
+                    objetivo: document.querySelector('#objetivo').value,
+                    asistencia: asistencia
+                };
+
+                axios.put(`${baseURL}/ensayos/update?ensayoID=${ensayoId}`, updatedEnsayo)
+                    .then(response => {
+                        console.log('Ensayo actualizado:', response.data);
+                        window.location.href = '/ensayos.html'; // Redirigir a la página de ensayos
+                    })
+                    .catch(error => {
+                        console.error('Error al actualizar ensayo:', error);
+                    });
+            });
+
+            // Obtener y llenar los datos del ensayo al cargar la página
+            getEnsayo();
+        });
+    </script>
+</body>
+</html>
